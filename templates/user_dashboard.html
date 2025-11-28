@@ -247,16 +247,18 @@
         <!-- Header -->
         <div class="header">
             <h1>Patient Dashboard</h1>
-            <p>Welcome, {{ patient.user.username }}</p>
+
             <div class="patient-info">
                 <strong>Patient ID:</strong> #{{ patient.id }}<br>
                 <strong>Contact:</strong> {{ patient.user.contact or 'Not provided' }}
             </div>
             <div class="nav-buttons">
+                 <a href="{{ url_for('edit_patient_profile') }}" class="btn btn-warning btn-sm">✏️ Edit Profile</a>
                 <a href="/patient/book_appointment" class="btn">Book Appointment</a>
                 <a href="/patient/appointments" class="btn">My Appointments</a>
                 <a href="/patient/treatments" class="btn">View Treatments</a>
                 <a href="/logout" class="btn btn-danger">Logout</a>
+               
             </div>
         </div>
 

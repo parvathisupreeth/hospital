@@ -65,10 +65,9 @@ class Appointment(db.Model):
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
     patient_id = db.Column(db.Integer, db.ForeignKey('patient.id'), nullable=False)
     doctor_id = db.Column(db.Integer, db.ForeignKey('doctor.id'), nullable=False)
-    date = db.Column(db.String(20), nullable=False)  # you can switch to date type if allowed
-    time = db.Column(db.String(20), nullable=False)  # you can switch to time type if allowed
-    status = db.Column(db.String(20), default='Booked', nullable=False)  # Booked, Completed, Cancelled
-
+    date = db.Column(db.String(20), nullable=False)  
+    time = db.Column(db.String(20), nullable=False)  
+    status = db.Column(db.String(20), default='Booked', nullable=False)  
     patient = db.relationship('Patient', backref='appointments')
     doctor = db.relationship('Doctor', backref='appointments')
 
@@ -208,7 +207,7 @@ def admin_dashboard():
         flash('Access denied', 'error')
         return redirect(url_for('login'))
 
-    # Basic counts
+    #count
     total_doctors = Doctor.query.count()
     total_patients = Patient.query.count()
     total_appointments = Appointment.query.count()
@@ -216,22 +215,21 @@ def admin_dashboard():
     completed_appointments = Appointment.query.filter_by(status='Completed').count()
     cancelled_appointments = Appointment.query.filter_by(status='Cancelled').count()
 
-    # Calculate percentages for department performance
+    # Cal percent
     completion_rate = round((completed_appointments / total_appointments * 100) if total_appointments > 0 else 0)
-    satisfaction_rate = 92  # You can calculate this from patient feedback if available
-    efficiency_score = 85   # You can calculate this based on your metrics
+    satisfaction_rate = 92  
+    efficiency_score = 85   
 
-    # Get doctors by specialization
+    
     from sqlalchemy import func
     specialization_data = db.session.query(
         Doctor.specialization,
         func.count(Doctor.id).label('count')
     ).group_by(Doctor.specialization).all()
 
-    # Find max count for percentage calculation
+
     max_count = max([s[1] for s in specialization_data]) if specialization_data else 1
 
-    # Format specialization data for chart
     specializations = []
     class_names = ['cardiology', 'neurology', 'orthopedics', 'pediatrics', 'general']
     for idx, (spec, count) in enumerate(specialization_data):
@@ -364,10 +362,9 @@ def view_appointments():
     search = request.args.get('search', '').strip()
     
     if search:
-        # Search by patient or doctor name
         appointments = []
         
-        # Search in patients
+        
         patient_appointments = Appointment.query.join(
             Patient
         ).join(
@@ -376,7 +373,7 @@ def view_appointments():
             User.username.ilike(f'%{search}%')
         ).all()
         
-        # Search in doctors
+
         doctor_appointments = Appointment.query.join(
             Doctor
         ).join(
@@ -385,7 +382,6 @@ def view_appointments():
             User.username.ilike(f'%{search}%')
         ).all()
         
-        # Combine and remove duplicates
         appointments = list(set(patient_appointments + doctor_appointments))
     else:
         appointments = Appointment.query.all()
@@ -402,7 +398,6 @@ def view_all_treatments():
     search = request.args.get('search', '').strip()
     
     if search:
-        # Search by patient name, doctor name, diagnosis, prescription, or notes
         treatments = Treatment.query.join(
             Appointment
         ).join(
@@ -441,6 +436,37 @@ def view_user():
     return render_template('view_user.html', patients=patients, search=search)
 
 
+
+@app.route('/admin/delete_patient/<int:patient_id>')
+def delete_patient(patient_id):
+    if 'user_id' not in session or session.get('role') != 'admin':
+        flash('Access denied', 'error')
+        return redirect(url_for('login'))
+
+    patient = Patient.query.get_or_404(patient_id)
+
+
+    user_id = patient.user_id
+
+    try:
+
+        db.session.delete(patient)
+
+
+        user = User.query.get(user_id)
+        if user:
+            db.session.delete(user)
+
+        db.session.commit()
+        flash("Patient and related data deleted successfully!", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error deleting patient: {str(e)}", "error")
+
+    return redirect(url_for('view_user'))
+
+
+
 # ---------------- DOCTOR ROUTES ---------------- #
 
 # @app.route('/doctor/dashboard')
@@ -461,6 +487,7 @@ def view_user():
 #     return render_template('doc_dashboard.html', doctor=doctor,
 #                            total_appointments=total_appointments,
 #                            pending=pending, completed=completed)
+
 @app.route('/doctor/dashboard')
 def doc_dashboard():
     if 'user_id' not in session or session.get('role') != 'doctor':
@@ -543,6 +570,54 @@ def add_treatment(appointment_id):
     if 'user_id' not in session or session.get('role') != 'doctor':
         flash('Access denied', 'error')
         return redirect(url_for('login'))
+    
+    appointment = Appointment.query.get_or_404(appointment_id)
+    doctor = Doctor.query.filter_by(user_id=session['user_id']).first()
+    
+    if appointment.doctor_id != doctor.id:
+        flash('Unauthorized access', 'error')
+        return redirect(url_for('doc_appointments'))
+    
+    if appointment.status != 'Completed':
+        flash('Treatment can only be added to completed appointments', 'warning')
+        return redirect(url_for('doc_appointments'))
+    
+ 
+    existing_treatment = Treatment.query.filter_by(appointment_id=appointment_id).first()
+    
+    if request.method == 'POST':
+        diagnosis = request.form.get('diagnosis')
+        prescription = request.form.get('prescription')
+        notes = request.form.get('notes')
+        
+        if existing_treatment:
+      
+            existing_treatment.diagnosis = diagnosis
+            existing_treatment.prescription = prescription
+            existing_treatment.notes = notes
+            db.session.commit()
+            flash('Treatment record updated successfully!', 'success')
+        else:
+       
+            new_treatment = Treatment(
+                appointment_id=appointment_id,
+                diagnosis=diagnosis,
+                prescription=prescription,
+                notes=notes
+            )
+            db.session.add(new_treatment)
+            db.session.commit()
+            flash('Treatment record added successfully!', 'success')
+        
+        return redirect(url_for('doc_appointments'))
+
+    return render_template('add_treatment.html', appointment=appointment, treatment=existing_treatment)
+
+@app.route('/doctor/cancel_appointment/<int:appointment_id>')
+def doctor_cancel_appointment(appointment_id):
+    if 'user_id' not in session or session.get('role') != 'doctor':
+        flash('Access denied', 'error')
+        return redirect(url_for('login'))
 
     appointment = Appointment.query.get_or_404(appointment_id)
     doctor = Doctor.query.filter_by(user_id=session['user_id']).first()
@@ -551,33 +626,47 @@ def add_treatment(appointment_id):
         flash('Unauthorized access', 'error')
         return redirect(url_for('doc_appointments'))
 
-    if appointment.status != 'Completed':
-        flash('Treatment can only be added to completed appointments', 'warning')
+    if appointment.status != 'Booked':
+        flash('Only booked appointments can be cancelled!', 'warning')
         return redirect(url_for('doc_appointments'))
 
-    existing_treatment = Treatment.query.filter_by(appointment_id=appointment_id).first()
-    if existing_treatment:
-        flash('Treatment record already exists for this appointment', 'warning')
-        return redirect(url_for('doc_appointments'))
+    appointment.status = 'Cancelled'
+    db.session.commit()
 
+    flash('Appointment cancelled successfully!', 'success')
+    return redirect(url_for('doc_appointments'))
+
+
+
+@app.route('/doctor/edit_treatment/<int:appointment_id>', methods=['GET', 'POST'])
+def edit_treatment(appointment_id):
+    if 'user_id' not in session or session.get('role') != 'doctor':
+        flash('Access denied', 'error')
+        return redirect(url_for('login'))
+    
+    appointment = Appointment.query.get_or_404(appointment_id)
+    doctor = Doctor.query.filter_by(user_id=session['user_id']).first()
+    
+    if appointment.doctor_id != doctor.id:
+        flash('Unauthorized access', 'error')
+        return redirect(url_for('doc_appointments'))
+    
+    treatment = Treatment.query.filter_by(appointment_id=appointment_id).first()
+    
+    if not treatment:
+        flash('No treatment record found', 'warning')
+        return redirect(url_for('doc_appointments'))
+    
     if request.method == 'POST':
-        diagnosis = request.form.get('diagnosis')
-        prescription = request.form.get('prescription')
-        notes = request.form.get('notes')
-
-        new_treatment = Treatment(
-            appointment_id=appointment_id,
-            diagnosis=diagnosis,
-            prescription=prescription,
-            notes=notes
-        )
-        db.session.add(new_treatment)
+        treatment.diagnosis = request.form.get('diagnosis')
+        treatment.prescription = request.form.get('prescription')
+        treatment.notes = request.form.get('notes')
+        
         db.session.commit()
-
-        flash('Treatment record added successfully!', 'success')
+        flash('Treatment record updated successfully!', 'success')
         return redirect(url_for('doc_appointments'))
-
-    return render_template('add_treatment.html', appointment=appointment)
+    
+    return render_template('edit_treatment.html', appointment=appointment, treatment=treatment)
 
 
 # ---------------- PATIENT ROUTES ---------------- #
@@ -594,15 +683,15 @@ def user_dashboard():
         db.session.add(patient)
         db.session.commit()
 
-    # Appointment counts
+ 
     total_appointments = Appointment.query.filter_by(patient_id=patient.id).count()
     upcoming = Appointment.query.filter_by(patient_id=patient.id, status='Booked').count()
     completed = Appointment.query.filter_by(patient_id=patient.id, status='Completed').count()
 
-    # Calculate completion rate
+    
     completion_rate = round((completed / total_appointments * 100) if total_appointments > 0 else 0)
 
-    # Get treatments received
+   
     completed_appointment_ids = [a.id for a in Appointment.query.filter_by(patient_id=patient.id, status='Completed').all()]
     treatments_received = Treatment.query.filter(Treatment.appointment_id.in_(completed_appointment_ids)).count() if completed_appointment_ids else 0
 
@@ -613,6 +702,45 @@ def user_dashboard():
                            completed=completed,
                            completion_rate=completion_rate,
                            treatments_received=treatments_received)
+
+
+
+@app.route('/patient/edit_profile', methods=['GET', 'POST'])
+def edit_patient_profile():
+    if 'user_id' not in session or session.get('role') != 'patient':
+        flash('Access denied', 'error')
+        return redirect(url_for('login'))
+    
+    patient = Patient.query.filter_by(user_id=session['user_id']).first()
+    
+    if not patient:
+        flash('Patient profile not found', 'error')
+        return redirect(url_for('user_dashboard'))
+    
+    if request.method == 'POST':
+     
+        new_username = request.form.get('username')
+        new_password = request.form.get('password')
+        
+  
+        existing_user = User.query.filter_by(username=new_username).first()
+        if existing_user and existing_user.id != patient.user_id:
+            flash('Username already taken!', 'warning')
+            return redirect(url_for('edit_patient_profile'))
+        
+        patient.user.username = new_username
+        if new_password:
+            patient.user.password = new_password
+        
+        patient.user.contact = request.form.get('contact')
+        patient.contact_info = request.form.get('contact_info')
+        
+        db.session.commit()
+        session['username'] = new_username 
+        flash('Profile updated successfully!', 'success')
+        return redirect(url_for('user_dashboard'))
+    
+    return render_template('edit_patient_profile.html', patient=patient)
 
 
 @app.route('/patient/book_appointment', methods=['GET', 'POST'])
@@ -633,6 +761,27 @@ def book_appointment():
 
         if not doctor_id or not date or not time:
             flash('All fields are required!', 'error')
+            return redirect(url_for('book_appointment'))
+
+   
+        try:
+            appointment_date = datetime.strptime(date, '%Y-%m-%d').date()
+            today = datetime.now().date()
+            
+            if appointment_date < today:
+                flash('Cannot book appointments in the past!', 'error')
+                return redirect(url_for('book_appointment'))
+            
+
+            if appointment_date == today:
+                appointment_time = datetime.strptime(time, '%H:%M').time()
+                current_time = datetime.now().time()
+                if appointment_time < current_time:
+                    flash('Cannot book appointments for a time that has already passed!', 'error')
+                    return redirect(url_for('book_appointment'))
+        
+        except ValueError:
+            flash('Invalid date or time format!', 'error')
             return redirect(url_for('book_appointment'))
 
         existing = Appointment.query.filter_by(doctor_id=doctor_id, date=date, time=time).first()

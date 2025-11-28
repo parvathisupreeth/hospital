@@ -4,194 +4,119 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>My Appointments - Doctor</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
-            font-family: Arial, sans-serif;
-            padding: 20px;
-            background-color: #f5f5f5;
+            background-color: #f8f9fa;
         }
-
-        h1 {
-            color: #333;
-            margin-bottom: 20px;
+        .navbar {
+            background-color: #2c3e50;
         }
-
-        .alert {
-            padding: 12px;
-            margin-bottom: 15px;
-            border-radius: 4px;
-            font-size: 14px;
+        .container-main {
+            background-color: white;
+            border-radius: 8px;
+            padding: 30px;
+            margin-top: 30px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
         }
-
-        .alert-success {
-            background-color: #d4edda;
-            color: #155724;
-            border: 1px solid #c3e6cb;
-        }
-
-        .alert-error {
-            background-color: #f8d7da;
-            color: #721c24;
-            border: 1px solid #f5c6cb;
-        }
-
-        .alert-warning {
-            background-color: #fff3cd;
-            color: #856404;
-            border: 1px solid #ffeaa7;
-        }
-
-        a {
-            color: #007bff;
-            text-decoration: none;
-            margin-right: 10px;
-        }
-
-        a:hover {
-            text-decoration: underline;
-        }
-
-        .btn {
-            display: inline-block;
-            padding: 8px 16px;
-            background-color: #007bff;
+        .table thead {
+            background-color: #2c3e50;
             color: white;
-            border-radius: 4px;
-            text-decoration: none;
-            font-size: 14px;
-            border: none;
-            cursor: pointer;
         }
-
-        .btn:hover {
-            background-color: #0056b3;
-        }
-
-        .btn-success {
-            background-color: #28a745;
-        }
-
-        .btn-success:hover {
-            background-color: #218838;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            background: white;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            margin-top: 20px;
-        }
-
-        th, td {
-            padding: 12px;
-            text-align: left;
-            border: 1px solid #ddd;
-        }
-
-        th {
-            background-color: #f8f9fa;
+        h2 {
+            color: #2c3e50;
+            margin-bottom: 20px;
             font-weight: bold;
-        }
-
-        tr:hover {
-            background-color: #f8f9fa;
-        }
-
-        .status-completed {
-            color: #28a745;
-            font-weight: bold;
-        }
-
-        .status-booked {
-            color: #007bff;
-            font-weight: bold;
-        }
-
-        .status-cancelled {
-            color: #dc3545;
-            font-weight: bold;
-        }
-
-        .no-appointments {
-            background: white;
-            padding: 40px;
-            text-align: center;
-            border-radius: 4px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-            margin-top: 20px;
-            color: #666;
         }
     </style>
 </head>
 <body>
-    <h1>My Appointments</h1>
+    <!-- Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="{{ url_for('doc_dashboard') }}">🏥 Doctor Dashboard</a>
+            <div class="navbar-nav ms-auto">
+                <span class="nav-link" style="color: white;">👤 {{ session.get('username') }}</span>
+                <a class="nav-link" href="{{ url_for('logout') }}" style="color: white;">Logout</a>
+            </div>
+        </div>
+    </nav>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            {% for category, message in messages %}
-                <div class="alert alert-{{ category }}">
-                    {{ message }}
-                </div>
-            {% endfor %}
+    <!-- Flash Messages -->
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ 'success' if category == 'success' else 'danger' if category == 'error' else 'warning' }} alert-dismissible fade show mt-3" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <!-- Main Content -->
+    <div class="container container-main">
+        <h2>My Appointments</h2>
+        <a href="{{ url_for('doc_dashboard') }}" class="btn btn-secondary mb-3">← Back to Dashboard</a>
+
+        <!-- Appointments Table -->
+        {% if appointments %}
+            <table class="table table-striped table-hover">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Patient</th>
+                        <th>Date</th>
+                        <th>Time</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for appointment in appointments %}
+                    <tr>
+                        <td>{{ appointment.id }}</td>
+                        <td>{{ appointment.patient.user.username }}</td>
+                        <td>{{ appointment.date }}</td>
+                        <td>{{ appointment.time }}</td>
+                        <td>
+                            {% if appointment.status == 'Completed' %}
+                                <span class="badge bg-success">{{ appointment.status }}</span>
+                            {% elif appointment.status == 'Booked' %}
+                                <span class="badge bg-primary">{{ appointment.status }}</span>
+                            {% else %}
+                                <span class="badge bg-danger">{{ appointment.status }}</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if appointment.status == 'Booked' %}
+                                <a href="{{ url_for('complete_appointment', appointment_id=appointment.id) }}" class="btn btn-success btn-sm">✓ Mark Complete</a>
+                                <a href="{{ url_for('doctor_cancel_appointment', appointment_id=appointment.id) }}" class="btn btn-danger btn-sm">✕ Cancel</a>
+                            {% elif appointment.status == 'Completed' %}
+                                {% set treatment = appointment.treatment | first %}
+                                {% if treatment %}
+                                    <a href="{{ url_for('add_treatment', appointment_id=appointment.id) }}" class="btn btn-warning btn-sm">✏️ Edit Treatment</a>
+
+                                {% else %}
+                                    <a href="{{ url_for('add_treatment', appointment_id=appointment.id) }}" class="btn btn-success btn-sm">➕ Add Treatment</a>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-muted">No Action</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="alert alert-info text-center">
+                <strong>ℹ️ You don't have any appointments scheduled yet.</strong>
+            </div>
         {% endif %}
-    {% endwith %}
-
-    <div>
-        <a href="/doctor/dashboard">Back to Dashboard</a>
     </div>
 
-    {% if appointments %}
-    <table>
-        <thead>
-            <tr>
-                <th>ID</th>
-                <th>Patient</th>
-                <th>Date</th>
-                <th>Time</th>
-                <th>Status</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for appointment in appointments %}
-            <tr>
-                <td>{{ appointment.id }}</td>
-                <td>{{ appointment.patient.user.username }}</td>
-                <td>{{ appointment.date }}</td>
-                <td>{{ appointment.time }}</td>
-                <td>
-                    {% if appointment.status == 'Completed' %}
-                        <span class="status-completed">{{ appointment.status }}</span>
-                    {% elif appointment.status == 'Booked' %}
-                        <span class="status-booked">{{ appointment.status }}</span>
-                    {% else %}
-                        <span class="status-cancelled">{{ appointment.status }}</span>
-                    {% endif %}
-                </td>
-                <td>
-                    {% if appointment.status == 'Booked' %}
-                        <a href="/doctor/complete_appointment/{{ appointment.id }}" class="btn btn-success">Mark Complete</a>
-                    {% elif appointment.status == 'Completed' %}
-                        {% set treatment = appointment.treatment | first %}
-                        {% if treatment %}
-                            <span style="color: #28a745;">Treatment Added</span>
-                        {% else %}
-                            <a href="/doctor/add_treatment/{{ appointment.id }}" class="btn">Add Treatment</a>
-                        {% endif %}
-                    {% else %}
-                        <span style="color: #6c757d;">No Action</span>
-                    {% endif %}
-                </td>
-            </tr>
-            {% endfor %}
-        </tbody>
-    </table>
-    {% else %}
-    <div class="no-appointments">
-        <h3>No appointments found</h3>
-        <p>You don't have any appointments scheduled yet.</p>
-    </div>
-    {% endif %}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
