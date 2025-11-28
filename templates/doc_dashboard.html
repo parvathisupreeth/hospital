@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Doctor Dashboard - Hospital Management</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .doctor-info {
+            background: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            background: white;
+            color: #333;
+        }
+
+        .btn:hover {
+            background: #f0f0f0;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+            border-color: #dc3545;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .stats-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .chart-title {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+
+        /* Pie Chart */
+        .pie-chart {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            margin: 20px auto;
+            background: conic-gradient(
+                #28a745 0deg var(--completed-deg),
+                #007bff var(--completed-deg) var(--booked-deg),
+                #dc3545 var(--booked-deg) 360deg
+            );
+        }
+
+        /* Circular Progress */
+        .circular-progress {
+            width: 180px;
+            height: 180px;
+            margin: 20px auto;
+            position: relative;
+        }
+
+        .circular-progress svg {
+            transform: rotate(-90deg);
+        }
+
+        .circular-progress circle {
+            fill: none;
+            stroke-width: 12;
+        }
+
+        .circle-bg {
+            stroke: #f0f0f0;
+        }
+
+        .circle-progress {
+            stroke: #007bff;
+            stroke-linecap: round;
+            stroke-dasharray: 508;
+            stroke-dashoffset: var(--progress-offset);
+        }
+
+        .circular-text {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+        }
+
+        .circular-text .percentage {
+            font-size: 32px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .circular-text .label {
+            font-size: 12px;
+            color: #666;
+        }
+
+        /* Legend */
+        .legend {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+        }
+
+        .legend-label {
+            flex: 1;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .legend-value {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .success-metrics {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .metric-box {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            text-align: center;
+        }
+
+        .metric-number {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .metric-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        @media (max-width: 768px) {
+            .stats-overview {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Doctor Dashboard</h1>
+            <p>Welcome, Dr. {{ doctor.user.username }}</p>
+            <div class="doctor-info">
+                <strong>Specialization:</strong> {{ doctor.specialization }}<br>
+                <strong>Availability:</strong> {{ doctor.availability }}
+            </div>
+            <div class="nav-buttons">
+                <a href="/doctor/appointments" class="btn">My Appointments</a>
+                <a href="/logout" class="btn btn-danger">Logout</a>
+            </div>
+        </div>
+
+        <!-- Stats Overview -->
+        <div class="stats-overview">
+            <div class="stat-card">
+                <div class="stat-number">{{ total_appointments }}</div>
+                <div class="stat-label">Total Appointments</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ pending }}</div>
+                <div class="stat-label">Pending</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ completed }}</div>
+                <div class="stat-label">Completed</div>
+            </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="charts-grid">
+            <!-- Appointment Status -->
+            <div class="chart-card">
+                <h2 class="chart-title">Appointment Status</h2>
+                <div class="pie-chart" style="
+                    --completed-deg: {{ completed_percentage * 3.6 }}deg;
+                    --booked-deg: {{ (completed_percentage + booked_percentage) * 3.6 }}deg;
+                "></div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #28a745;"></div>
+                        <span class="legend-label">Completed</span>
+                        <span class="legend-value">{{ completed }} ({{ completed_percentage }}%)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #007bff;"></div>
+                        <span class="legend-label">Booked</span>
+                        <span class="legend-value">{{ pending }} ({{ booked_percentage }}%)</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #dc3545;"></div>
+                        <span class="legend-label">Cancelled</span>
+                        <span class="legend-value">{{ cancelled }} ({{ cancelled_percentage }}%)</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Treatment Success Rate -->
+            <div class="chart-card">
+                <h2 class="chart-title">Treatment Success Rate</h2>
+                <div class="circular-progress" style="--progress-offset: {{ 508 - (success_rate * 5.08) }};">
+                    <svg width="180" height="180">
+                        <circle class="circle-bg" cx="90" cy="90" r="81"></circle>
+                        <circle class="circle-progress" cx="90" cy="90" r="81"></circle>
+                    </svg>
+                    <div class="circular-text">
+                        <div class="percentage">{{ success_rate }}%</div>
+                        <div class="label">Success</div>
+                    </div>
+                </div>
+                <div class="success-metrics">
+                    <div class="metric-box">
+                        <div class="metric-number">{{ treatments_given }}</div>
+                        <div class="metric-label">Treatments Given</div>
+                    </div>
+                    <div class="metric-box">
+                        <div class="metric-number">{{ successful_treatments }}</div>
+                        <div class="metric-label">Successful</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

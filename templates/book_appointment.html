@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Book Appointment</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+
+        h1, h2 {
+            color: #333;
+        }
+
+        .alert {
+            padding: 12px;
+            margin-bottom: 15px;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .alert-success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+
+        a {
+            color: #007bff;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        .search-container {
+            display: flex;
+            gap: 10px;
+            margin: 20px 0;
+            max-width: 600px;
+        }
+
+        .search-box {
+            flex: 1;
+            padding: 10px 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .search-box:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        .search-btn {
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .search-btn:hover {
+            background-color: #0056b3;
+        }
+
+        .doctor-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .doctor-card h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .doctor-info {
+            color: #666;
+            margin-bottom: 15px;
+        }
+
+        .doctor-info p {
+            margin: 5px 0;
+        }
+
+        .form-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            background-color: #28a745;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .btn:hover {
+            background-color: #218838;
+        }
+
+        .no-doctors {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+            background: white;
+            border-radius: 4px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+    </style>
+</head>
+<body>
+    <h1>Book Appointment</h1>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div style="margin-bottom: 20px;">
+        <a href="/patient/dashboard">Back to Dashboard</a>
+    </div>
+
+    <!-- Search Box -->
+    <form method="GET" action="/patient/book_appointment" class="search-container">
+        <input 
+            type="text" 
+            class="search-box" 
+            name="search" 
+            placeholder="Search by doctor name or specialization..."
+            value="{{ search or '' }}"
+        >
+        <button type="submit" class="search-btn">Search</button>
+    </form>
+
+    <h2>Available Doctors</h2>
+
+    {% if doctors %}
+        {% for doctor in doctors %}
+        <div class="doctor-card">
+            <h3>Dr. {{ doctor.user.username }}</h3>
+            <div class="doctor-info">
+                <p><strong>Specialization:</strong> {{ doctor.specialization }}</p>
+                <p><strong>Availability:</strong> {{ doctor.availability }}</p>
+                <p><strong>Contact:</strong> {{ doctor.user.contact or 'N/A' }}</p>
+            </div>
+
+            <div class="form-section">
+                <form method="POST" action="/patient/book_appointment">
+                    <input type="hidden" name="doctor_id" value="{{ doctor.id }}">
+                    
+                    <div class="form-group">
+                        <label for="date_{{ doctor.id }}">Select Date:</label>
+                        <input type="date" id="date_{{ doctor.id }}" name="date" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="time_{{ doctor.id }}">Select Time:</label>
+                        <input type="time" id="time_{{ doctor.id }}" name="time" required>
+                    </div>
+
+                    <button type="submit" class="btn">Book Appointment</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    {% else %}
+        <div class="no-doctors">
+            <h3>No doctors found</h3>
+            {% if search %}
+            <p>No results found for "{{ search }}"</p>
+            {% else %}
+            <p>No doctors available at the moment.</p>
+            {% endif %}
+        </div>
+    {% endif %}
+</body>
+</html>

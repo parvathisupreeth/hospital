@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Add Doctor</title>
+</head>
+<body>
+    <h2>Add New Doctor</h2>
+    
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <p style="color: {% if category == 'error' %}red{% elif category == 'success' %}green{% else %}orange{% endif %};">
+                    {{ message }}
+                </p>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+    
+    <form method="POST">
+        <label>Username:</label><br>
+        <input type="text" name="username" required><br><br>
+        
+        <label>Password:</label><br>
+        <input type="password" name="password" required><br><br>
+        
+        <label>Contact:</label><br>
+        <input type="text" name="contact"><br><br>
+        
+        <label>Specialization:</label><br>
+        <input type="text" name="specialization" required><br><br>
+        
+        <label>Availability:</label><br>
+        <textarea name="availability" rows="4" cols="40" placeholder="e.g., Mon-Fri 9AM-5PM"></textarea><br><br>
+        
+        <input type="submit" value="Add Doctor">
+    </form>
+    
+    <br>
+    <a href="{{ url_for('view_doc') }}">Back to Doctors List</a>
+</body>
+</html>

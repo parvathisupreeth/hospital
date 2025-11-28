@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Hospital Management</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            color: #333;
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 15px;
+        }
+
+        .nav-buttons {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border-radius: 4px;
+            text-decoration: none;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            background: white;
+            color: #333;
+        }
+
+        .btn:hover {
+            background: #f0f0f0;
+        }
+
+        .btn-danger {
+            background: #dc3545;
+            color: white;
+            border-color: #dc3545;
+        }
+
+        .btn-danger:hover {
+            background: #c82333;
+        }
+
+        .stats-overview {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 32px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        .chart-card {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+        }
+
+        .chart-title {
+            font-size: 18px;
+            margin-bottom: 20px;
+            color: #333;
+            border-bottom: 2px solid #007bff;
+            padding-bottom: 10px;
+        }
+
+        /* Donut Chart */
+        .donut-chart {
+            width: 180px;
+            height: 180px;
+            border-radius: 50%;
+            margin: 20px auto;
+            background: conic-gradient(
+                #28a745 0deg 180deg,
+                #ffc107 180deg 270deg,
+                #dc3545 270deg 360deg
+            );
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .donut-chart::after {
+            content: '';
+            width: 110px;
+            height: 110px;
+            background: white;
+            border-radius: 50%;
+            position: absolute;
+        }
+
+        .donut-center {
+            position: relative;
+            z-index: 1;
+            text-align: center;
+        }
+
+        .donut-center .number {
+            font-size: 28px;
+            font-weight: bold;
+            color: #333;
+        }
+
+        .donut-center .label {
+            font-size: 12px;
+            color: #666;
+        }
+
+        /* Legend */
+        .legend {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            margin-top: 15px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .legend-color {
+            width: 20px;
+            height: 20px;
+            border-radius: 3px;
+        }
+
+        .legend-label {
+            flex: 1;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .legend-value {
+            font-weight: bold;
+            color: #333;
+        }
+
+        /* Bar Chart */
+        .bar-chart {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .bar-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .bar-label {
+            width: 100px;
+            font-size: 14px;
+            color: #555;
+        }
+
+        .bar-wrapper {
+            flex: 1;
+            height: 30px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            background: #007bff;
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            padding-right: 10px;
+            color: white;
+            font-weight: bold;
+            font-size: 12px;
+        }
+
+        /* Progress Bars */
+        .stats-bars {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .stat-item {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .stat-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 14px;
+        }
+
+        .stat-label {
+            color: #555;
+        }
+
+        .stat-value {
+            font-weight: bold;
+            color: #333;
+        }
+
+        .progress-bar {
+            height: 24px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #28a745;
+        }
+
+        @media (max-width: 768px) {
+            .stats-overview {
+                grid-template-columns: repeat(2, 1fr);
+            }
+
+            .charts-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>Admin Dashboard</h1>
+            <p>Welcome, Admin</p>
+            <div class="nav-buttons">
+                <a href="/admin/doctors" class="btn">Manage Doctors</a>
+                <a href="/admin/patients" class="btn">View Patients</a>
+                <a href="/admin/appointments" class="btn">All Appointments</a>
+                <a href="/admin/treatments" class="btn">All Treatments</a>
+                <a href="/logout" class="btn btn-danger">Logout</a>
+            </div>
+        </div>
+
+        <!-- Stats Overview -->
+        <div class="stats-overview">
+            <div class="stat-card">
+                <div class="stat-number">{{ total_doctors }}</div>
+                <div class="stat-label">Total Doctors</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ total_patients }}</div>
+                <div class="stat-label">Total Patients</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ total_appointments }}</div>
+                <div class="stat-label">Total Appointments</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ pending_appointments }}</div>
+                <div class="stat-label">Pending</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-number">{{ completed_appointments }}</div>
+                <div class="stat-label">Completed</div>
+            </div>
+        </div>
+
+        <!-- Charts Grid -->
+        <div class="charts-grid">
+            <!-- Monthly Appointments -->
+            <div class="chart-card">
+                <h2 class="chart-title">Monthly Appointments</h2>
+                <div class="donut-chart">
+                    <div class="donut-center">
+                        <div class="number">{{ total_appointments }}</div>
+                        <div class="label">Total</div>
+                    </div>
+                </div>
+                <div class="legend">
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #28a745;"></div>
+                        <span class="legend-label">Completed</span>
+                        <span class="legend-value">{{ completed_appointments }}</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #ffc107;"></div>
+                        <span class="legend-label">Pending</span>
+                        <span class="legend-value">{{ pending_appointments }}</span>
+                    </div>
+                    <div class="legend-item">
+                        <div class="legend-color" style="background: #dc3545;"></div>
+                        <span class="legend-label">Cancelled</span>
+                        <span class="legend-value">{{ cancelled_appointments }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Department Performance -->
+            <div class="chart-card">
+                <h2 class="chart-title">Department Performance</h2>
+                <div class="stats-bars">
+                    <div class="stat-item">
+                        <div class="stat-header">
+                            <span class="stat-label">Patient Satisfaction</span>
+                            <span class="stat-value">{{ satisfaction_rate }}%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: {{ satisfaction_rate }}%;"></div>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-header">
+                            <span class="stat-label">Completion Rate</span>
+                            <span class="stat-value">{{ completion_rate }}%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: {{ completion_rate }}%;"></div>
+                        </div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-header">
+                            <span class="stat-label">Efficiency Score</span>
+                            <span class="stat-value">{{ efficiency_score }}%</span>
+                        </div>
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: {{ efficiency_score }}%;"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Doctors by Specialization -->
+            <div class="chart-card" style="grid-column: span 2;">
+                <h2 class="chart-title">Doctors by Specialization</h2>
+                <div class="bar-chart">
+                    {% for spec in specializations %}
+                    <div class="bar-item">
+                        <div class="bar-label">{{ spec.name }}</div>
+                        <div class="bar-wrapper">
+                            <div class="bar-fill" style="width: {{ spec.percentage }}%;">
+                                {{ spec.count }}
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
