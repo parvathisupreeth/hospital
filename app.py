@@ -38,14 +38,15 @@ class Department(db.Model):
 class Doctor(db.Model):
     __tablename__ = 'doctor'
     id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-    specialization = db.Column(db.String(100), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id', ondelete='CASCADE'), nullable=False)
+    department_id = db.Column(db.Integer, db.ForeignKey('department.id'), nullable=False)
     availability = db.Column(db.String(255), nullable=True)
 
-    user = db.relationship('User', backref='doctor')
+    user = db.relationship('User', backref=db.backref('doctor', cascade='all, delete-orphan'))
+    department = db.relationship('Department', backref='doctors')
 
     def __repr__(self):
-        return f'<Doctor {self.user.username} - {self.specialization}>'
+        return f'<Doctor {self.user.username} - {self.department.name}>'
 
 
 class Patient(db.Model):
@@ -101,6 +102,29 @@ def create_auto_admin():
     else:
         print("Admin already exists")
 
+def create_departments():
+    departments = [
+        {'name': 'Cardiology', 'description': 'Heart and cardiovascular system'},
+        {'name': 'Neurology', 'description': 'Brain and nervous system'},
+        {'name': 'Orthopedics', 'description': 'Bones, muscles, and joints'},
+        {'name': 'Pediatrics', 'description': 'Child healthcare'},
+        {'name': 'General Medicine', 'description': 'General health and wellness'},
+        {'name': 'Surgery', 'description': 'Surgical procedures'},
+        {'name': 'Gynecology', 'description': 'Women health care'},
+    ]
+    
+    for dept_data in departments:
+        existing = Department.query.filter_by(name=dept_data['name']).first()
+        if not existing:
+            dept = Department(name=dept_data['name'], description=dept_data['description'])
+            db.session.add(dept)
+    
+    try:
+        db.session.commit()
+        print("Departments created successfully")
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error creating departments: {e}")
 
 # ---------------- AUTH ROUTES ---------------- #
 
@@ -220,22 +244,22 @@ def admin_dashboard():
     satisfaction_rate = 92  
     efficiency_score = 85   
 
-    
+    # FIXED: Use Department.name instead of Doctor.specialization
     from sqlalchemy import func
     specialization_data = db.session.query(
-        Doctor.specialization,
+        Department.name,
         func.count(Doctor.id).label('count')
-    ).group_by(Doctor.specialization).all()
-
+    ).join(Department, Doctor.department_id == Department.id)\
+     .group_by(Department.name).all()
 
     max_count = max([s[1] for s in specialization_data]) if specialization_data else 1
 
     specializations = []
     class_names = ['cardiology', 'neurology', 'orthopedics', 'pediatrics', 'general']
-    for idx, (spec, count) in enumerate(specialization_data):
+    for idx, (dept_name, count) in enumerate(specialization_data):
         percentage = round((count / max_count) * 100)
         specializations.append({
-            'name': spec,
+            'name': dept_name,
             'count': count,
             'percentage': percentage,
             'class': class_names[idx % len(class_names)]
@@ -253,7 +277,6 @@ def admin_dashboard():
                            efficiency_score=efficiency_score,
                            specializations=specializations)
 
-
 @app.route('/admin/doctors')
 def view_doc():
     if 'user_id' not in session or session.get('role') != 'admin':
@@ -263,16 +286,17 @@ def view_doc():
     search = request.args.get('search', '').strip()
     
     if search:
-        doctors = Doctor.query.join(User).filter(
+        doctors = Doctor.query.join(User).join(Department).filter(
             or_(
                 User.username.ilike(f'%{search}%'),
-                Doctor.specialization.ilike(f'%{search}%')
+                Department.name.ilike(f'%{search}%')
             )
         ).all()
     else:
         doctors = Doctor.query.all()
     
     return render_template('view_doc.html', doctors=doctors, search=search)
+
 
 
 @app.route('/admin/add_doctor', methods=['GET', 'POST'])
@@ -285,7 +309,7 @@ def add_doctor():
         username = request.form.get('username')
         password = request.form.get('password')
         contact = request.form.get('contact')
-        specialization = request.form.get('specialization')
+        department_id = request.form.get('department_id') 
         availability = request.form.get('availability')
 
         existing_user = User.query.filter_by(username=username).first()
@@ -297,14 +321,14 @@ def add_doctor():
         db.session.add(new_user)
         db.session.commit()
 
-        new_doctor = Doctor(user_id=new_user.id, specialization=specialization, availability=availability)
+        new_doctor = Doctor(user_id=new_user.id, department_id=department_id, availability=availability)  
         db.session.add(new_doctor)
         db.session.commit()
 
         flash('Doctor added successfully!', 'success')
         return redirect(url_for('view_doc'))
-
-    return render_template('add_doc.html')
+    departments = Department.query.all()
+    return render_template('add_doc.html', departments=departments)
 
 
 @app.route('/admin/edit_doctor/<int:doctor_id>', methods=['GET', 'POST'])
@@ -323,14 +347,17 @@ def edit_doc(doctor_id):
         if new_password:
             doctor.user.password = new_password
 
-        doctor.specialization = request.form.get('specialization')
+        doctor.department_id = request.form.get('department_id')
         doctor.availability = request.form.get('availability')
+        
         db.session.commit()
 
         flash('Doctor updated successfully!', 'success')
         return redirect(url_for('view_doc'))
 
-    return render_template('edit_doc.html', doctor=doctor)
+    departments = Department.query.all()
+    return render_template('edit_doc.html', doctor=doctor, departments=departments)
+
 
 
 @app.route('/admin/delete_doctor/<int:doctor_id>')
@@ -436,7 +463,6 @@ def view_user():
     return render_template('view_user.html', patients=patients, search=search)
 
 
-
 @app.route('/admin/delete_patient/<int:patient_id>')
 def delete_patient(patient_id):
     if 'user_id' not in session or session.get('role') != 'admin':
@@ -445,26 +471,37 @@ def delete_patient(patient_id):
 
     patient = Patient.query.get_or_404(patient_id)
 
+    # Only check for ACTIVE (Booked) appointments
+    booked_count = Appointment.query.filter_by(
+        patient_id=patient_id,
+        status='Booked'
+    ).count()
 
-    user_id = patient.user_id
+    if booked_count > 0:
+        flash(f'Cannot delete patient! This patient has {booked_count} booked appointment(s). Please cancel or complete them first.', 'error')
+        return redirect(url_for('view_user'))
+
+    # Store user reference
+    user = patient.user
 
     try:
-
+        # Delete ALL appointments first (including completed/cancelled)
+        Appointment.query.filter_by(patient_id=patient_id).delete()
+        
+        # Then delete patient
         db.session.delete(patient)
-
-
-        user = User.query.get(user_id)
+        
+        # Then delete user
         if user:
             db.session.delete(user)
-
+        
         db.session.commit()
-        flash("Patient and related data deleted successfully!", "success")
+        flash('Patient and associated records deleted successfully!', 'success')
     except Exception as e:
         db.session.rollback()
-        flash(f"Error deleting patient: {str(e)}", "error")
+        flash(f'Error deleting patient: {str(e)}', 'error')
 
     return redirect(url_for('view_user'))
-
 
 
 # ---------------- DOCTOR ROUTES ---------------- #
@@ -812,7 +849,7 @@ def book_appointment():
         pattern = f"%{search}%"
         query = query.join(User).filter(or_(
             User.username.ilike(pattern),
-            Doctor.specialization.ilike(pattern)
+            Department.name.ilike(pattern)
         ))
 
     doctors = query.all()
@@ -873,9 +910,9 @@ def cancel_appointment(appointment_id):
 
 
 
-
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
         create_auto_admin()
+        create_departments()  
     app.run(debug=True)

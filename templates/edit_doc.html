@@ -26,8 +26,15 @@
         <label>Contact:</label><br>
         <input type="text" name="contact" value="{{ doctor.user.contact }}"><br><br>
         
-        <label>Specialization:</label><br>
-        <input type="text" name="specialization" value="{{ doctor.specialization }}" required><br><br>
+        <div class="form-group">
+            <label for="department_id">Department/Specialization</label>
+            <select name="department_id" id="department_id" required>
+                <option value="">-- Select Department --</option>
+                {% for dept in departments %}
+                <option value="{{ dept.id }}">{{ dept.name }}</option>
+                {% endfor %}
+            </select>
+        </div>
         
         <label>Availability:</label><br>
         <textarea name="availability" rows="4" cols="40">{{ doctor.availability }}</textarea><br><br>

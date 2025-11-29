@@ -196,7 +196,7 @@
         <div class="doctor-card">
             <h3>Dr. {{ doctor.user.username }}</h3>
             <div class="doctor-info">
-                <p><strong>Specialization:</strong> {{ doctor.specialization }}</p>
+                <p><strong>Specialization:</strong> {{ doctor.department.name }}</p>
                 <p><strong>Availability:</strong> {{ doctor.availability }}</p>
                 <p><strong>Contact:</strong> {{ doctor.user.contact or 'N/A' }}</p>
             </div>

@@ -146,7 +146,7 @@
             <tr>
                 <th>ID</th>
                 <th>Doctor</th>
-                <th>Specialization</th>
+                <th>Specialization/Department</th>
                 <th>Date</th>
                 <th>Time</th>
                 <th>Status</th>
@@ -158,7 +158,7 @@
             <tr>
                 <td>{{ appointment.id }}</td>
                 <td>Dr. {{ appointment.doctor.user.username }}</td>
-                <td>{{ appointment.doctor.specialization }}</td>
+                <td>{{ appointment.doctor.department.name }}</td>
                 <td>{{ appointment.date }}</td>
                 <td>{{ appointment.time }}</td>
                 <td>
